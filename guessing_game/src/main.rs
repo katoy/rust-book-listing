@@ -1,3 +1,9 @@
+use std::io;
+
+use guessing_game::run_game;
+
 fn main() {
-    println!("Hello, world!");
+    let stdin = io::stdin();
+    let stdout = io::stdout();
+    run_game(&mut stdin.lock(), &mut stdout.lock());
 }
