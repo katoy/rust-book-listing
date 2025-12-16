@@ -140,8 +140,13 @@ open target/llvm-cov/html/index.html
 | `test_parse_guess_negative_number` | 負の数（u32 なので None）の処理 | ✅ OK |
 | `test_run_game_valid_input` | 正常な数値入力時のゲームフロー | ✅ OK |
 | `test_run_game_invalid_input` | 無効な入力時のエラーメッセージ表示 | ✅ OK |
+| `test_run_game_write_error_first_writeln` | 最初の writeln でのI/Oエラー処理 | ✅ OK |
+| `test_run_game_write_error_second_writeln` | 2番目の writeln でのI/Oエラー処理 | ✅ OK |
+| `test_run_game_read_error` | read_line でのI/Oエラー処理 | ✅ OK |
+| `test_run_game_write_error_after_read` | 結果表示（有効入力）でのI/Oエラー処理 | ✅ OK |
+| `test_run_game_write_error_on_invalid_input_message` | 結果表示（無効入力）でのI/Oエラー処理 | ✅ OK |
 
-**テスト実行結果:** 6 passed, 0 failed
+**テスト実行結果:** 11 passed, 0 failed
 
 ### Clippy 結果
 
@@ -159,10 +164,10 @@ $ cargo llvm-cov --summary-only
 
 Filename   Regions  Cover    Functions  Executed  Lines   Cover
 ----------------------------------------------------------------
-lib.rs          32  84.38%           2   100.00%     13  100.00%
+lib.rs          32  90.62%           2   100.00%     13  100.00%
 main.rs         14   0.00%           1     0.00%      8    0.00%
 ----------------------------------------------------------------
-TOTAL           46  58.70%           3    66.67%     21   61.90%
+TOTAL           46  63.04%           3    66.67%     21   61.90%
 ```
 
 > **Note:** `main.rs` が 0% なのは、`cargo test` ではバイナリの `main()` 関数が実行されないためです
@@ -175,10 +180,13 @@ $ cargo llvm-cov --summary-only --ignore-filename-regex 'main\.rs'
 
 Filename   Regions  Cover    Functions  Executed  Lines   Cover
 ----------------------------------------------------------------
-lib.rs          32  84.38%           2   100.00%     13  100.00%
+lib.rs          32  90.62%           2   100.00%     13  100.00%
 ----------------------------------------------------------------
-TOTAL           32  84.38%           2   100.00%     13  100.00%
+TOTAL           32  90.62%           2   100.00%     13  100.00%
 ```
+
+> **Note:** Lines カバレッジは **100%** です。Regions が 100% でないのは、`?` 演算子の
+> 内部実装詳細（llvm-cov のカウント方法）に起因し、実用上は問題ありません。
 
 ## ライセンス
 
