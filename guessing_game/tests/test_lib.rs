@@ -1,4 +1,4 @@
-use super::*;
+use guessing_game::{parse_guess, run_game};
 use std::io::Cursor;
 
 #[test]
@@ -34,7 +34,7 @@ fn test_run_game_valid_input() {
     let mut input = Cursor::new("42\n");
     let mut output = Vec::new();
 
-    run_game(&mut input, &mut output);
+    run_game(&mut input, &mut output).unwrap();
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(output_str.contains("Guess the number!"));
@@ -47,7 +47,7 @@ fn test_run_game_invalid_input() {
     let mut input = Cursor::new("abc\n");
     let mut output = Vec::new();
 
-    run_game(&mut input, &mut output);
+    run_game(&mut input, &mut output).unwrap();
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(output_str.contains("Guess the number!"));

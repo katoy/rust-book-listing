@@ -2,5 +2,7 @@
 name = "guessing_game"
 version = "0.1.0"
 edition = "2021"
+authors = ["katoy"]
+description = "A simple number guessing game - Rust Book learning project"
 
 [dependencies]
