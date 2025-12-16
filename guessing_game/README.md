@@ -190,4 +190,4 @@ TOTAL           32  90.62%           2   100.00%     13  100.00%
 
 ## ライセンス
 
-[MIT License](./LICENSE)
+[MIT License](../LICENSE)
