@@ -1,11 +1,14 @@
-use guessing_game::{parse_guess, run_game, run_game_with_secret};
+use guessing_game::{config, parse_guess, run_game_internal, run_game_with_secret};
 use std::io::{self, BufRead, Cursor, Write};
+
+// =============================================================================
+// parse_guess テスト
+// =============================================================================
 
 #[test]
 fn test_parse_guess_valid_number() {
     assert_eq!(parse_guess("42"), Some(42));
-    assert_eq!(parse_guess("1"), Some(1));
-    assert_eq!(parse_guess("100"), Some(100));
+    assert_eq!(parse_guess("50"), Some(50));
 }
 
 #[test]
@@ -30,11 +33,32 @@ fn test_parse_guess_negative_number() {
 }
 
 #[test]
-fn test_run_game_valid_input() {
+fn test_parse_guess_out_of_range() {
+    // config の範囲外
+    assert_eq!(parse_guess("0"), None);
+    assert_eq!(parse_guess("101"), None);
+
+    // 範囲内の境界値
+    assert_eq!(
+        parse_guess(&config::MIN_NUMBER.to_string()),
+        Some(config::MIN_NUMBER)
+    );
+    assert_eq!(
+        parse_guess(&config::MAX_NUMBER.to_string()),
+        Some(config::MAX_NUMBER)
+    );
+}
+
+// =============================================================================
+// run_game_internal テスト
+// =============================================================================
+
+#[test]
+fn test_run_game_internal_valid_input() {
     let mut input = Cursor::new("42\n");
     let mut output = Vec::new();
 
-    run_game(&mut input, &mut output).unwrap();
+    run_game_internal(&mut input, &mut output).unwrap();
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(output_str.contains("1から100の数字を当ててみぃや！"));
@@ -43,11 +67,11 @@ fn test_run_game_valid_input() {
 }
 
 #[test]
-fn test_run_game_invalid_input() {
+fn test_run_game_internal_invalid_input() {
     let mut input = Cursor::new("abc\n");
     let mut output = Vec::new();
 
-    run_game(&mut input, &mut output).unwrap();
+    run_game_internal(&mut input, &mut output).unwrap();
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(output_str.contains("1から100の数字を当ててみぃや！"));
@@ -55,7 +79,22 @@ fn test_run_game_invalid_input() {
     assert!(output_str.contains("ちゃんとした数字入れてや！"));
 }
 
-// run_game_with_secret を使った全パスのテスト
+#[test]
+fn test_run_game_internal_eof() {
+    // 空の入力（即座にEOF）
+    let mut input = Cursor::new("");
+    let mut output = Vec::new();
+
+    let result = run_game_internal(&mut input, &mut output);
+    assert!(result.is_ok());
+
+    let output_str = String::from_utf8(output).unwrap();
+    assert!(output_str.contains("1から100の数字を当ててみぃや！"));
+}
+
+// =============================================================================
+// run_game_with_secret テスト（全パスカバー）
+// =============================================================================
 
 #[test]
 fn test_run_game_with_secret_guess_too_small() {
@@ -100,7 +139,9 @@ fn test_run_game_with_secret_correct_guess() {
     assert!(!output_str.contains("もっと小さいで！"));
 }
 
-// I/O エラーをシミュレートするためのヘルパー構造体
+// =============================================================================
+// I/O エラーハンドリングテスト用ヘルパー
+// =============================================================================
 
 /// 書き込み時に常にエラーを返す Writer
 struct FailingWriter;
@@ -168,59 +209,61 @@ impl Write for FailAfterNWritesWriter {
     }
 }
 
+// =============================================================================
+// I/O エラーハンドリングテスト
+// =============================================================================
+
 #[test]
-fn test_run_game_write_error_first_writeln() {
+fn test_run_game_internal_write_error_first_writeln() {
     // 最初の writeln! でエラー
     let mut input = Cursor::new("42\n");
     let mut output = FailingWriter;
 
-    let result = run_game(&mut input, &mut output);
+    let result = run_game_internal(&mut input, &mut output);
     assert!(result.is_err());
     assert_eq!(result.unwrap_err().kind(), io::ErrorKind::Other);
 }
 
 #[test]
-fn test_run_game_read_error() {
+fn test_run_game_internal_read_error() {
     // read_line でエラー
     let mut input = FailingReader;
     let mut output = Vec::new();
 
-    let result = run_game(&mut input, &mut output);
+    let result = run_game_internal(&mut input, &mut output);
     assert!(result.is_err());
     assert_eq!(result.unwrap_err().kind(), io::ErrorKind::Other);
 }
 
 #[test]
-fn test_run_game_write_error_after_read() {
+fn test_run_game_internal_write_error_after_read() {
     // 3回目の書き込み（結果表示）でエラー
     let mut input = Cursor::new("42\n");
     let mut output = FailAfterNWritesWriter::new(2);
 
-    let result = run_game(&mut input, &mut output);
+    let result = run_game_internal(&mut input, &mut output);
     assert!(result.is_err());
 }
 
 #[test]
-fn test_run_game_write_error_second_writeln() {
+fn test_run_game_internal_write_error_second_writeln() {
     // 2番目の writeln! でエラー（1回書き込み成功後にエラー）
     let mut input = Cursor::new("42\n");
     let mut output = FailAfterNWritesWriter::new(1);
 
-    let result = run_game(&mut input, &mut output);
+    let result = run_game_internal(&mut input, &mut output);
     assert!(result.is_err());
 }
 
 #[test]
-fn test_run_game_write_error_on_invalid_input_message() {
+fn test_run_game_internal_write_error_on_invalid_input_message() {
     // 無効な入力時の結果表示でエラー
     let mut input = Cursor::new("abc\n");
     let mut output = FailAfterNWritesWriter::new(2);
 
-    let result = run_game(&mut input, &mut output);
+    let result = run_game_internal(&mut input, &mut output);
     assert!(result.is_err());
 }
-
-// run_game_with_secret を使ったエラーパステスト
 
 #[test]
 fn test_run_game_with_secret_write_error_on_less() {
