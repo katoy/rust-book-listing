@@ -1,4 +1,4 @@
-use guessing_game::{parse_guess, run_game};
+use guessing_game::{parse_guess, run_game, run_game_with_secret};
 use std::io::{self, BufRead, Cursor, Write};
 
 #[test]
@@ -37,9 +37,9 @@ fn test_run_game_valid_input() {
     run_game(&mut input, &mut output).unwrap();
 
     let output_str = String::from_utf8(output).unwrap();
-    assert!(output_str.contains("Guess the number!"));
-    assert!(output_str.contains("Please input your guess."));
-    assert!(output_str.contains("You guessed: 42"));
+    assert!(output_str.contains("1から100の数字を当ててみぃや！"));
+    assert!(output_str.contains("ほな、予想入れてみて！"));
+    assert!(output_str.contains("あんたの予想は 42 やな！"));
 }
 
 #[test]
@@ -50,9 +50,54 @@ fn test_run_game_invalid_input() {
     run_game(&mut input, &mut output).unwrap();
 
     let output_str = String::from_utf8(output).unwrap();
-    assert!(output_str.contains("Guess the number!"));
-    assert!(output_str.contains("Please input your guess."));
-    assert!(output_str.contains("Please enter a valid number!"));
+    assert!(output_str.contains("1から100の数字を当ててみぃや！"));
+    assert!(output_str.contains("ほな、予想入れてみて！"));
+    assert!(output_str.contains("ちゃんとした数字入れてや！"));
+}
+
+// run_game_with_secret を使った全パスのテスト
+
+#[test]
+fn test_run_game_with_secret_guess_too_small() {
+    // 予想が秘密の数字より小さい場合
+    let mut input = Cursor::new("25\n50\n"); // 25は50より小さい、50で正解
+    let mut output = Vec::new();
+
+    run_game_with_secret(&mut input, &mut output, 50).unwrap();
+
+    let output_str = String::from_utf8(output).unwrap();
+    assert!(output_str.contains("あんたの予想は 25 やな！"));
+    assert!(output_str.contains("もっと大きいで！"));
+    assert!(output_str.contains("正解や！やったな！"));
+}
+
+#[test]
+fn test_run_game_with_secret_guess_too_big() {
+    // 予想が秘密の数字より大きい場合
+    let mut input = Cursor::new("75\n50\n"); // 75は50より大きい、50で正解
+    let mut output = Vec::new();
+
+    run_game_with_secret(&mut input, &mut output, 50).unwrap();
+
+    let output_str = String::from_utf8(output).unwrap();
+    assert!(output_str.contains("あんたの予想は 75 やな！"));
+    assert!(output_str.contains("もっと小さいで！"));
+    assert!(output_str.contains("正解や！やったな！"));
+}
+
+#[test]
+fn test_run_game_with_secret_correct_guess() {
+    // 最初から正解の場合
+    let mut input = Cursor::new("42\n");
+    let mut output = Vec::new();
+
+    run_game_with_secret(&mut input, &mut output, 42).unwrap();
+
+    let output_str = String::from_utf8(output).unwrap();
+    assert!(output_str.contains("あんたの予想は 42 やな！"));
+    assert!(output_str.contains("正解や！やったな！"));
+    assert!(!output_str.contains("もっと大きいで！"));
+    assert!(!output_str.contains("もっと小さいで！"));
 }
 
 // I/O エラーをシミュレートするためのヘルパー構造体
@@ -172,5 +217,37 @@ fn test_run_game_write_error_on_invalid_input_message() {
     let mut output = FailAfterNWritesWriter::new(2);
 
     let result = run_game(&mut input, &mut output);
+    assert!(result.is_err());
+}
+
+// run_game_with_secret を使ったエラーパステスト
+
+#[test]
+fn test_run_game_with_secret_write_error_on_less() {
+    // "もっと大きいで！" のwriteln!でエラー
+    let mut input = Cursor::new("25\n"); // 25 < 50
+    let mut output = FailAfterNWritesWriter::new(3); // 3回書き込み後にエラー
+
+    let result = run_game_with_secret(&mut input, &mut output, 50);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_game_with_secret_write_error_on_greater() {
+    // "もっと小さいで！" のwriteln!でエラー
+    let mut input = Cursor::new("75\n"); // 75 > 50
+    let mut output = FailAfterNWritesWriter::new(3); // 3回書き込み後にエラー
+
+    let result = run_game_with_secret(&mut input, &mut output, 50);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_run_game_with_secret_write_error_on_equal() {
+    // "正解や！やったな！" のwriteln!でエラー
+    let mut input = Cursor::new("50\n"); // 50 == 50
+    let mut output = FailAfterNWritesWriter::new(3); // 3回書き込み後にエラー
+
+    let result = run_game_with_secret(&mut input, &mut output, 50);
     assert!(result.is_err());
 }
