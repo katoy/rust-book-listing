@@ -1,0 +1,9 @@
+[package]
+name = "functions"
+version = "0.1.0"
+edition = "2021"
+authors = ["katoy"]
+description = "フィボナッチ数列の計算 - 再帰版とビネの公式版の比較"
+license = "MIT"
+
+[dependencies]
